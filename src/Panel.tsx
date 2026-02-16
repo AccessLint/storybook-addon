@@ -2,15 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, type FC } fro
 import { useAddonState, useChannel } from "storybook/internal/manager-api";
 import { useTheme } from "storybook/internal/theming";
 import { AddonPanel } from "storybook/internal/components";
-import { ADDON_ID } from "./constants";
-
-interface AuditMeta {
-  duration: number;
-  ruleCount: number;
-  passed: number;
-  failed: number;
-  violations: number;
-}
+import { ADDON_ID, type AuditMeta } from "./constants";
 
 interface EnrichedViolation {
   ruleId: string;
