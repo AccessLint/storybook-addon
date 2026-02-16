@@ -1,5 +1,4 @@
 [![npm version](https://img.shields.io/npm/v/@accesslint/storybook-addon)](https://www.npmjs.com/package/@accesslint/storybook-addon)
-[![npm downloads](https://img.shields.io/npm/dm/@accesslint/storybook-addon)](https://www.npmjs.com/package/@accesslint/storybook-addon)
 [![license](https://img.shields.io/github/license/AccessLint/storybook-addon)](https://github.com/AccessLint/storybook-addon/blob/main/LICENSE)
 
 # @accesslint/storybook-addon
