@@ -1,7 +1,7 @@
 {
   "name": "@accesslint/storybook-addon",
   "version": "0.6.3",
-  "description": "Storybook addon for accessibility auditing powered by @accesslint/core",
+  "description": "Catch accessibility violations in your Storybook stories as you develop",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/AccessLint/core/issues"
@@ -51,7 +51,15 @@
     "accessibility",
     "a11y",
     "wcag",
-    "accesslint"
+    "aria",
+    "accesslint",
+    "test",
+    "component",
+    "react",
+    "vue",
+    "angular",
+    "svelte",
+    "web-components"
   ],
   "storybook": {
     "displayName": "AccessLint",
