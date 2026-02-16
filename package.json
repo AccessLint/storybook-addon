@@ -3,6 +3,9 @@
   "version": "0.6.3",
   "description": "Catch accessibility violations in your Storybook stories as you develop",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/AccessLint/core/issues"
   },
