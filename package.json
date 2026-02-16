@@ -1,0 +1,67 @@
+{
+  "name": "@accesslint/storybook-addon",
+  "version": "0.0.1",
+  "description": "Storybook addon for accessibility auditing powered by @accesslint/core",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./manager": "./dist/manager.js",
+    "./preview": {
+      "import": "./dist/preview.js",
+      "require": "./dist/preview.cjs"
+    }
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "*.js",
+    "*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@accesslint/core": "^0.6.3"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "storybook": "^8.6.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "storybook": "^8.0.0"
+  },
+  "keywords": [
+    "storybook-addon",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "accesslint"
+  ],
+  "storybook": {
+    "displayName": "AccessLint",
+    "icon": "https://accesslint.com/icon.png"
+  },
+  "bundler": {
+    "nodeEntries": [
+      "./src/index.ts"
+    ],
+    "managerEntries": [
+      "./src/manager.ts"
+    ],
+    "previewEntries": [
+      "./src/preview.ts"
+    ]
+  }
+}
