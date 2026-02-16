@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { addons, types, useAddonState, useChannel } from "storybook/internal/manager-api";
+import { addons, types, useAddonState, useChannel, useStorybookApi } from "storybook/internal/manager-api";
+import { ActionList, Form } from "storybook/internal/components";
+import { styled } from "storybook/internal/theming";
 import type { Violation } from "@accesslint/core";
 import { ADDON_ID, PANEL_ID, TEST_PROVIDER_ID, type AuditMeta } from "./constants";
 import { Panel } from "./Panel";
@@ -26,8 +28,41 @@ const Title = () => {
   );
 };
 
+const StyledActionList = styled(ActionList)({
+  padding: 0,
+});
+
+type StatusType = "positive" | "warning" | "negative" | "unknown";
+
+const StatusDot = styled.div<{ status: StatusType }>(
+  {
+    width: 6,
+    height: 6,
+    margin: 4,
+    borderRadius: "50%",
+    background: "var(--status-color)",
+  },
+  ({ status, theme }) =>
+    status === "positive" && {
+      "--status-color": theme.color.positive,
+    },
+  ({ status, theme }) =>
+    status === "warning" && {
+      "--status-color": theme.color.gold,
+    },
+  ({ status, theme }) =>
+    status === "negative" && {
+      "--status-color": theme.color.negative,
+    },
+  ({ status, theme }) =>
+    status === "unknown" && {
+      "--status-color": theme.textMutedColor,
+    },
+);
+
 const TestProviderWidget = () => {
   const [meta, setMeta] = useState<AuditMeta | null>(null);
+  const api = useStorybookApi();
 
   useChannel({
     [`${ADDON_ID}/meta`]: (data: AuditMeta) => {
@@ -36,44 +71,39 @@ const TestProviderWidget = () => {
   });
 
   const hasViolations = meta !== null && meta.violations > 0;
+  const status: StatusType =
+    meta === null ? "unknown" : hasViolations ? "negative" : "positive";
+
+  const openPanel = () => {
+    api.setSelectedPanel(PANEL_ID);
+    api.togglePanel(true);
+  };
 
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "4px 0",
-      fontSize: "13px",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span
-          style={{
-            display: "inline-block",
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: meta === null ? "#999" : hasViolations ? "#d32f2f" : "#2e7d32",
-          }}
-        />
-        <span>Accessibility</span>
-      </div>
-      {meta !== null && hasViolations && (
-        <span style={{
-          display: "inline-block",
-          minWidth: "18px",
-          padding: "0 6px",
-          lineHeight: "18px",
-          borderRadius: "9px",
-          fontSize: "11px",
-          fontWeight: "bold",
-          textAlign: "center",
-          background: "#d32f2f",
-          color: "#fff",
-        }}>
-          {meta.violations}
-        </span>
-      )}
-    </div>
+    <StyledActionList>
+      <ActionList.Item>
+        <ActionList.Action as="label" readOnly>
+          <ActionList.Icon>
+            <Form.Checkbox name="AccessLint" checked disabled />
+          </ActionList.Icon>
+          <ActionList.Text>AccessLint</ActionList.Text>
+        </ActionList.Action>
+        <ActionList.Button
+          ariaLabel={
+            meta === null
+              ? "AccessLint: not run yet"
+              : hasViolations
+                ? `AccessLint: ${meta.violations} violation${meta.violations === 1 ? "" : "s"}`
+                : "AccessLint: no violations"
+          }
+          disabled={meta === null}
+          onClick={openPanel}
+        >
+          {hasViolations ? meta.violations : null}
+          <StatusDot status={status} />
+        </ActionList.Button>
+      </ActionList.Item>
+    </StyledActionList>
   );
 };
 
