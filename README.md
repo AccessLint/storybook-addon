@@ -55,7 +55,7 @@ configureRules({
 
 | Addon version | Storybook version |
 | ------------- | ----------------- |
-| 0.6.x         | 8.6.x             |
+| 0.6.x         | 10.x              |
 
 ## Issues
 
