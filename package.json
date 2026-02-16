@@ -62,7 +62,7 @@
       "./src/index.ts"
     ],
     "managerEntries": [
-      "./src/manager.ts"
+      "./src/manager.tsx"
     ],
     "previewEntries": [
       "./src/preview.ts"
