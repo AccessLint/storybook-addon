@@ -24,6 +24,10 @@ export default config;
 
 Once installed, an **Accessibility** panel appears in the Storybook addon bar. It automatically audits each story on render and reports any violations with the rule ID, message, and affected selector.
 
+## Issues
+
+Please report issues in the [AccessLint core repository](https://github.com/AccessLint/core/issues).
+
 ## License
 
 MIT

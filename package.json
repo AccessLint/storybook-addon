@@ -3,6 +3,9 @@
   "version": "0.6.3",
   "description": "Storybook addon for accessibility auditing powered by @accesslint/core",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AccessLint/core/issues"
+  },
   "type": "module",
   "exports": {
     ".": {
