@@ -1,6 +1,6 @@
 {
   "name": "@accesslint/storybook-addon",
-  "version": "0.6.5",
+  "version": "0.6.7",
   "description": "Catch accessibility violations in your Storybook stories as you develop",
   "license": "MIT",
   "publishConfig": {
@@ -37,7 +37,6 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepublishOnly": "node -e \"const fs = require('fs'); const v = JSON.parse(fs.readFileSync('node_modules/@accesslint/core/package.json','utf8')).version; const pkg = JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version = v; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');\"",
     "build:watch": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
