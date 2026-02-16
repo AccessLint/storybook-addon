@@ -42,7 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accesslint/core": "^0.6.4"
+    "@accesslint/core": "^0.6.5"
   },
   "devDependencies": {
     "react": "^18.2.0",
