@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useMemo, type FC } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, type FC } from "react";
 import { useAddonState, useChannel } from "storybook/internal/manager-api";
 import { useTheme } from "storybook/internal/theming";
 import { AddonPanel } from "storybook/internal/components";
 import { ADDON_ID } from "./constants";
+
+interface AuditMeta {
+  duration: number;
+  ruleCount: number;
+  passed: number;
+  failed: number;
+  violations: number;
+}
 
 interface EnrichedViolation {
   ruleId: string;
@@ -72,12 +80,17 @@ export const Panel: FC<PanelProps> = ({ active, ...rest }) => {
     ADDON_ID,
     [],
   );
+  const [meta, setMeta] = useState<AuditMeta | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const emit = useChannel({
     [`${ADDON_ID}/results`]: (results: EnrichedViolation[]) => {
       setViolations(results);
       setExpandedIndex(null);
+    },
+    [`${ADDON_ID}/meta`]: (data: AuditMeta) => {
+      setMeta(data);
     },
   });
 
@@ -103,11 +116,49 @@ export const Panel: FC<PanelProps> = ({ active, ...rest }) => {
     }
   }, [expandedIndex]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
+    let next: number | null = null;
+    switch (e.key) {
+      case "ArrowDown":
+        next = Math.min(index + 1, sorted.length - 1);
+        break;
+      case "ArrowUp":
+        next = Math.max(index - 1, 0);
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = sorted.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    buttonRefs.current[next]?.focus();
+  }, [sorted.length]);
+
   if (!active) return null;
 
   return (
     <AddonPanel active={active} {...rest}>
       <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "system-ui, sans-serif" }}>
+        {meta && (
+          <div style={{
+            display: "flex",
+            gap: "12px",
+            padding: "8px 12px",
+            fontSize: "11px",
+            color: colors.textMuted,
+            borderBottom: `1px solid ${colors.border}`,
+            flexShrink: 0,
+          }}>
+            <span>{meta.ruleCount} rules</span>
+            <span style={{ color: "#2e7d32" }}>{meta.passed} passed</span>
+            <span style={{ color: meta.failed > 0 ? "#d32f2f" : colors.textMuted }}>{meta.failed} failed</span>
+            <span>{meta.duration}ms</span>
+          </div>
+        )}
         {violations.length === 0 ? (
           <p style={{ padding: "12px", margin: 0, fontSize: "13px", color: colors.textMuted }}>
             No accessibility violations found.
@@ -123,8 +174,10 @@ export const Panel: FC<PanelProps> = ({ active, ...rest }) => {
                 return (
                   <li key={i} style={{ borderBottom: `1px solid ${colors.border}` }}>
                     <button
+                      ref={(el) => { buttonRefs.current[i] = el; }}
                       type="button"
                       onClick={() => setExpandedIndex(isOpen ? null : i)}
+                      onKeyDown={(e) => handleKeyDown(e, i)}
                       aria-expanded={isOpen}
                       style={{
                         width: "100%",
@@ -231,25 +284,6 @@ export const Panel: FC<PanelProps> = ({ active, ...rest }) => {
                             >
                               {v.html}
                             </pre>
-                          </div>
-                        )}
-                        {v.selector && (
-                          <div>
-                            <div style={{ fontSize: "11px", fontWeight: 500, color: colors.textMuted, marginBottom: "4px" }}>
-                              Selector
-                            </div>
-                            <code
-                              style={{
-                                fontSize: "11px",
-                                color: colors.text,
-                                background: colors.codeBg,
-                                padding: "2px 6px",
-                                borderRadius: "2px",
-                                border: `1px solid ${colors.codeBorder}`,
-                              }}
-                            >
-                              {v.selector}
-                            </code>
                           </div>
                         )}
                       </div>
