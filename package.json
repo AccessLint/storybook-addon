@@ -32,6 +32,14 @@
     "./vitest-setup": {
       "import": "./dist/vitest-setup.js",
       "require": "./dist/vitest-setup.cjs"
+    },
+    "./matchers": {
+      "import": "./dist/matchers.js",
+      "require": "./dist/matchers.cjs"
+    },
+    "./portable": {
+      "import": "./dist/portable.js",
+      "require": "./dist/portable.cjs"
     }
   },
   "main": "dist/index.cjs",

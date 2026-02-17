@@ -75,5 +75,31 @@ export default defineConfig((options) => {
     ...options,
   });
 
+  // Custom Vitest matchers (browser — runs in vitest browser context)
+  configs.push({
+    entry: ["./src/matchers.ts"],
+    outDir: "dist",
+    format: ["esm" as const, "cjs" as const],
+    target: "esnext" as const,
+    platform: "browser" as const,
+    external,
+    dts: true,
+    treeshake: true,
+    ...options,
+  });
+
+  // Portable stories helper (browser — used in external test setups)
+  configs.push({
+    entry: ["./src/portable.ts"],
+    outDir: "dist",
+    format: ["esm" as const, "cjs" as const],
+    target: "esnext" as const,
+    platform: "browser" as const,
+    external,
+    dts: true,
+    treeshake: true,
+    ...options,
+  });
+
   return configs;
 });
