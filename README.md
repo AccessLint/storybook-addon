@@ -26,6 +26,8 @@ export default config;
 
 Restart Storybook and an **AccessLint** panel will appear in the addon bar. Every story is audited automatically after it renders.
 
+Expand any violation to see the failing element, WCAG criteria, and remediation guidance. Click **Highlight** to outline the element in the preview.
+
 ## Vitest integration
 
 If you use [`@storybook/addon-vitest`](https://storybook.js.org/docs/writing-tests/vitest-plugin), add the AccessLint plugin next to `storybookTest()` in your Vite config:

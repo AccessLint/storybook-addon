@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback, type FC } from "react";
 import { useChannel } from "storybook/internal/manager-api";
 import { useTheme } from "storybook/internal/theming";
 import { STORY_CHANGED } from "storybook/internal/core-events";
-import { RESULT_EVENT } from "./constants";
+import { RESULT_EVENT, HIGHLIGHT, REMOVE_HIGHLIGHT } from "./constants";
 
 interface EnrichedViolation {
   ruleId: string;
@@ -70,27 +70,31 @@ export const Panel: FC<PanelProps> = ({ active }) => {
   const [ruleCount, setRuleCount] = useState(0);
   const [skippedReason, setSkippedReason] = useState<string | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  useChannel({
+  const emit = useChannel({
     [RESULT_EVENT]: ({ result }: { storyId?: string; result: { violations?: EnrichedViolation[]; ruleCount?: number; skipped?: boolean; reason?: string }; status?: string }) => {
       if (result.skipped) {
         setViolations([]);
         setRuleCount(0);
         setSkippedReason(result.reason ?? "skipped");
         setExpandedIndex(null);
+        setHighlightedIndex(null);
         return;
       }
       setViolations(result.violations ?? []);
       setRuleCount(result.ruleCount ?? 0);
       setSkippedReason(null);
       setExpandedIndex(null);
+      setHighlightedIndex(null);
     },
     [STORY_CHANGED]: () => {
       setViolations([]);
       setRuleCount(0);
       setSkippedReason(null);
       setExpandedIndex(null);
+      setHighlightedIndex(null);
     },
   });
 
@@ -163,7 +167,13 @@ export const Panel: FC<PanelProps> = ({ active }) => {
                   <button
                     ref={(el) => { buttonRefs.current[i] = el; }}
                     type="button"
-                    onClick={() => setExpandedIndex(isOpen ? null : i)}
+                    onClick={() => {
+                      setExpandedIndex(isOpen ? null : i);
+                      if (highlightedIndex !== null) {
+                        emit(REMOVE_HIGHLIGHT);
+                        setHighlightedIndex(null);
+                      }
+                    }}
                     onKeyDown={(e) => handleKeyDown(e, i)}
                     aria-expanded={isOpen}
                     style={{
@@ -252,8 +262,42 @@ export const Panel: FC<PanelProps> = ({ active }) => {
                       )}
                       {v.html && (
                         <div style={{ marginBottom: "8px" }}>
-                          <div style={{ fontSize: "11px", fontWeight: 500, color: colors.textMuted, marginBottom: "4px" }}>
-                            Element
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                            <div style={{ fontSize: "11px", fontWeight: 500, color: colors.textMuted }}>
+                              Element
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (highlightedIndex === i) {
+                                  emit(REMOVE_HIGHLIGHT);
+                                  setHighlightedIndex(null);
+                                } else {
+                                  const color = v.impact === "critical" || v.impact === "serious"
+                                    ? "#d32f2f"
+                                    : "#c43e00";
+                                  const localSelector = v.selector.replace(/^.*>>>\s*iframe>\s*/, "");
+                                  emit(HIGHLIGHT, {
+                                    elements: [localSelector],
+                                    color,
+                                    style: "solid",
+                                  });
+                                  setHighlightedIndex(i);
+                                }
+                              }}
+                              style={{
+                                padding: "2px 8px",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                border: `1px solid ${colors.codeBorder}`,
+                                borderRadius: "4px",
+                                background: highlightedIndex === i ? IMPACT_COLOR[v.impact] : colors.codeBg,
+                                color: highlightedIndex === i ? "#fff" : colors.text,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Highlight
+                            </button>
                           </div>
                           <pre
                             style={{
