@@ -14,30 +14,64 @@ Catch accessibility violations in your Storybook stories as you develop. Powered
 npm install @accesslint/storybook-addon
 ```
 
-Then add it to your `.storybook/main.ts` (or `.storybook/main.js`):
+Add the addon to your `.storybook/main.ts` (or `.storybook/main.js`):
 
 ```ts
 const config = {
-  addons: ["@accesslint/storybook-addon"],
+  addons: ["@storybook/addon-vitest", "@accesslint/storybook-addon"],
 };
 
 export default config;
 ```
 
-That's it. Restart Storybook and an **AccessLint** panel will appear in the addon bar.
+Add the vitest plugin to your `vite.config.ts`:
+
+```ts
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+import { accesslintTest } from "@accesslint/storybook-addon/vitest-plugin";
+
+export default defineConfig({
+  plugins: [
+    storybookTest({ configDir: ".storybook" }),
+    accesslintTest(),
+  ],
+});
+```
+
+Restart Storybook and an **AccessLint** panel will appear in the addon bar.
 
 ## Usage
 
-The addon automatically audits each story on render and displays violations sorted by severity. Expand any violation to see:
+The addon audits each story after it renders and displays violations sorted by severity. Expand any violation to see:
 
 - **Impact level** — critical, serious, moderate, or minor
 - **WCAG criteria** and conformance level (A, AA, AAA)
 - **How to fix** guidance for each rule
 - **Element HTML** snippet of the failing element
 
-Selecting a violation highlights the affected element in the story preview.
-
 ## Configuration
+
+### Parameters
+
+Control AccessLint behavior per-story or globally via `parameters.accesslint`:
+
+```ts
+// .storybook/preview.ts
+const preview = {
+  parameters: {
+    accesslint: {
+      // 'todo' - show violations as warnings in the test UI
+      // 'error' - fail CI on violations
+      // 'off' - skip checks entirely
+      test: "todo",
+    },
+  },
+};
+
+export default preview;
+```
+
+### Disabling rules
 
 Disable specific rules in your preview file:
 
