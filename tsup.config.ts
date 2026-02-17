@@ -70,7 +70,7 @@ export default defineConfig((options) => {
     format: ["esm" as const, "cjs" as const],
     target: "esnext" as const,
     platform: "browser" as const,
-    external,
+    external: [...external, "vitest"],
     treeshake: true,
     ...options,
   });

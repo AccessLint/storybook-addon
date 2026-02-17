@@ -1,17 +1,13 @@
 /**
  * Custom Vitest matcher for accessibility assertions.
  *
- * Usage in a play function or Vitest test:
+ * Registered automatically by the accesslintTest() vitest plugin.
+ * Can also be imported for side-effect registration in play functions:
  *
  *   import "@accesslint/storybook-addon/matchers";
- *
  *   await expect(canvasElement).toBeAccessible();
- *
- * Or with options:
- *
- *   await expect(canvasElement).toBeAccessible({ disabledRules: ["accesslint-045"] });
  */
-import { runAudit, getRuleById, configureRules } from "@accesslint/core";
+import { runAudit, getRuleById } from "@accesslint/core";
 import type { AuditResult, Violation } from "@accesslint/core";
 
 export interface AccessibleMatcherOptions {
@@ -39,7 +35,7 @@ function formatViolation(v: Violation): string {
   return `  ${v.ruleId}${level}${wcag}: ${v.message}\n    ${v.selector}`;
 }
 
-const toBeAccessible = function (
+export const toBeAccessible = function (
   this: { isNot: boolean },
   received: Element,
   options?: AccessibleMatcherOptions,
@@ -53,12 +49,14 @@ const toBeAccessible = function (
     };
   }
 
-  if (options?.disabledRules) {
-    configureRules({ disabledRules: options.disabledRules });
-  }
-
   const result = runAudit(received.ownerDocument);
-  const scoped = scopeViolationsToElement(result.violations, received);
+  let scoped = scopeViolationsToElement(result.violations, received);
+
+  // Filter out disabled rules without mutating global configuration
+  if (options?.disabledRules?.length) {
+    const disabled = new Set(options.disabledRules);
+    scoped = scoped.filter((v) => !disabled.has(v.ruleId));
+  }
 
   const pass = scoped.length === 0;
 
@@ -77,15 +75,15 @@ const toBeAccessible = function (
   };
 };
 
-// Register the matcher with whatever expect is available (Vitest or Jest)
+export const accesslintMatchers = { toBeAccessible };
+
+// Auto-register when imported for side effects (play functions, standalone tests)
 if (typeof globalThis !== "undefined") {
   const g = globalThis as Record<string, unknown>;
   const expectFn = g.expect as
     | { extend?: (matchers: Record<string, unknown>) => void }
     | undefined;
   if (expectFn?.extend) {
-    expectFn.extend({ toBeAccessible });
+    expectFn.extend(accesslintMatchers);
   }
 }
-
-export { toBeAccessible };

@@ -1,5 +1,8 @@
 import { runAudit, getRuleById, configureRules } from "@accesslint/core";
 
+// Defined by the accesslintTest() Vite plugin when tags.skip is configured
+declare const __ACCESSLINT_SKIP_TAGS__: string[];
+
 // Disable rules that don't apply to individual components in Storybook
 configureRules({
   disabledRules: ["accesslint-045"],
@@ -53,8 +56,11 @@ export const afterEach = async ({
   if (accesslintParam?.disable === true || accesslintParam?.test === "off") return;
   if (viewMode !== "story") return;
 
-  // Tags-based filtering: skip stories tagged with "no-a11y"
+  // Tags-based filtering: skip stories tagged with "no-a11y" or custom skip tags
   if (tags?.includes("no-a11y")) return;
+  const skipTags: string[] =
+    typeof __ACCESSLINT_SKIP_TAGS__ !== "undefined" ? __ACCESSLINT_SKIP_TAGS__ : [];
+  if (skipTags.length > 0 && tags?.some((t) => skipTags.includes(t))) return;
 
   const result = runAudit(document);
   const scoped = scopeViolations(result.violations);
