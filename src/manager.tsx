@@ -1,30 +1,45 @@
 import React from "react";
-import {
-  addons,
-  types,
-  useChannel,
-  useStorybookApi,
-  experimental_getStatusStore,
-  experimental_getTestProviderStore,
-  experimental_useTestProviderStore,
-} from "storybook/internal/manager-api";
-import { ActionList, Form } from "storybook/internal/components";
+import * as managerApi from "storybook/internal/manager-api";
 import { styled } from "storybook/internal/theming";
 import { STORY_FINISHED } from "storybook/internal/core-events";
 import { ADDON_ID, PARAM_KEY, STATUS_TYPE_ID } from "./constants";
 import { Panel } from "./Panel";
 
+const { addons, types, useChannel, useStorybookApi } = managerApi;
+
 const PANEL_ID = `${ADDON_ID}/panel`;
 const TEST_PROVIDER_ID = `${ADDON_ID}/test-provider`;
 
-// --- Status Store: per-story sidebar dots ---
-const statusStore = experimental_getStatusStore(STATUS_TYPE_ID);
-const testProviderStore = experimental_getTestProviderStore(TEST_PROVIDER_ID);
+// --- Storybook 10+ feature detection ---
+// These APIs only exist in Storybook 10+. We feature-detect at the module
+// level so the addon degrades gracefully to panel-only mode on Storybook 9.
+const _getStatusStore = (managerApi as any).experimental_getStatusStore;
+const _getTestProviderStore = (managerApi as any).experimental_getTestProviderStore;
+const _useTestProviderStore: ((selector: (state: any) => any) => any) | null =
+  (managerApi as any).experimental_useTestProviderStore ?? null;
+const hasTestProvider = !!(_getStatusStore && _getTestProviderStore);
 
-// Clear sidebar dots when the global "Clear All" button is pressed
-testProviderStore.onClearAll(() => {
-  statusStore.unset();
-});
+const statusStore = hasTestProvider ? _getStatusStore(STATUS_TYPE_ID) : null;
+const testProviderStore = hasTestProvider ? _getTestProviderStore(TEST_PROVIDER_ID) : null;
+
+if (testProviderStore && statusStore) {
+  // Clear sidebar dots when the global "Clear All" button is pressed
+  testProviderStore.onClearAll(() => {
+    statusStore.unset();
+  });
+}
+
+// ActionList and Form only exist in Storybook 10+
+let ActionList: any = null;
+let Form: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const components = require("storybook/internal/components");
+  ActionList = components.ActionList ?? null;
+  Form = components.Form ?? null;
+} catch {
+  // Storybook 9 — ActionList/Form not available
+}
 
 const Title = () => {
   const [count, setCount] = React.useState(0);
@@ -58,9 +73,9 @@ const Title = () => {
 
 type StatusType = "positive" | "negative" | "unknown";
 
-const StyledActionList = styled(ActionList)({
-  padding: 0,
-});
+const StyledActionList = ActionList
+  ? styled(ActionList)({ padding: 0 })
+  : styled.div({ padding: 0 });
 
 const StatusDot = styled.div<{ status: StatusType }>(
   {
@@ -92,12 +107,13 @@ const TestProviderWidget = () => {
   const [violationCount, setViolationCount] = React.useState<number | null>(null);
   const api = useStorybookApi();
 
-  const providerState = experimental_useTestProviderStore(
-    (state) => state[TEST_PROVIDER_ID]
-  );
+  const providerState = _useTestProviderStore
+    ? _useTestProviderStore((state: any) => state[TEST_PROVIDER_ID])
+    : null;
 
   React.useEffect(() => {
     // Open the AccessLint panel when a sidebar status dot is clicked
+    if (!statusStore) return;
     const unsub = statusStore.onSelect(() => {
       api.setSelectedPanel(PANEL_ID);
       api.togglePanel(true);
@@ -116,25 +132,27 @@ const TestProviderWidget = () => {
       const violations = (report.result as ViolationReport)?.violations ?? [];
       setViolationCount(violations.length);
 
-      // Update the status store for per-story sidebar dots
-      const hasViolations = violations.length > 0;
-      const isWarning = report.status === "warning";
+      // Update the status store for per-story sidebar dots (SB 10+ only)
+      if (statusStore) {
+        const hasViolations = violations.length > 0;
+        const isWarning = report.status === "warning";
 
-      statusStore.set([{
-        value: hasViolations
-          ? isWarning ? "status-value:warning" : "status-value:error"
-          : "status-value:success",
-        typeId: STATUS_TYPE_ID,
-        storyId,
-        title: "AccessLint",
-        description: hasViolations
-          ? `${violations.length} violation${violations.length === 1 ? "" : "s"}`
-          : "No violations",
-        sidebarContextMenu: true,
-      }]);
+        statusStore.set([{
+          value: hasViolations
+            ? isWarning ? "status-value:warning" : "status-value:error"
+            : "status-value:success",
+          typeId: STATUS_TYPE_ID,
+          storyId,
+          title: "AccessLint",
+          description: hasViolations
+            ? `${violations.length} violation${violations.length === 1 ? "" : "s"}`
+            : "No violations",
+          sidebarContextMenu: true,
+        }]);
+      }
 
-      // Mark the test provider as succeeded after processing
-      if (providerState === "test-provider-state:running") {
+      // Mark the test provider as succeeded after processing (SB 10+ only)
+      if (testProviderStore && providerState === "test-provider-state:running") {
         testProviderStore.setState("test-provider-state:succeeded");
       }
     },
@@ -149,39 +167,56 @@ const TestProviderWidget = () => {
     api.togglePanel(true);
   };
 
+  // Storybook 10+: use ActionList components
+  if (ActionList && Form) {
+    return (
+      <StyledActionList>
+        <ActionList.Item>
+          <ActionList.Action as="label" readOnly>
+            <ActionList.Icon>
+              <Form.Checkbox name="AccessLint" checked disabled />
+            </ActionList.Icon>
+            <ActionList.Text>AccessLint</ActionList.Text>
+          </ActionList.Action>
+          <ActionList.Button
+            ariaLabel={
+              violationCount === null
+                ? "AccessLint: not run yet"
+                : hasViolations
+                  ? `AccessLint: ${violationCount} violation${violationCount === 1 ? "" : "s"}`
+                  : "AccessLint: no violations"
+            }
+            disabled={violationCount === null}
+            onClick={openPanel}
+          >
+            {hasViolations ? violationCount : null}
+            <StatusDot status={status} />
+          </ActionList.Button>
+        </ActionList.Item>
+      </StyledActionList>
+    );
+  }
+
+  // Storybook 9 fallback: simple styled widget
   return (
-    <StyledActionList>
-      <ActionList.Item>
-        <ActionList.Action as="label" readOnly>
-          <ActionList.Icon>
-            <Form.Checkbox name="AccessLint" checked disabled />
-          </ActionList.Icon>
-          <ActionList.Text>AccessLint</ActionList.Text>
-        </ActionList.Action>
-        <ActionList.Button
-          ariaLabel={
-            violationCount === null
-              ? "AccessLint: not run yet"
-              : hasViolations
-                ? `AccessLint: ${violationCount} violation${violationCount === 1 ? "" : "s"}`
-                : "AccessLint: no violations"
-          }
-          disabled={violationCount === null}
-          onClick={openPanel}
-        >
-          {hasViolations ? violationCount : null}
-          <StatusDot status={status} />
-        </ActionList.Button>
-      </ActionList.Item>
+    <StyledActionList
+      style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", cursor: "pointer" }}
+      onClick={openPanel}
+    >
+      <StatusDot status={status} />
+      <span style={{ fontSize: 12 }}>AccessLint</span>
+      {hasViolations && (
+        <span style={{ fontSize: 11, fontWeight: "bold" }}>{violationCount}</span>
+      )}
     </StyledActionList>
   );
 };
 
-// --- Sidebar context menu ---
+// --- Sidebar context menu (SB 10+ only, requires ActionList) ---
 const SidebarContextMenu = ({ context }: { context: { id: string; type: string } }) => {
   const api = useStorybookApi();
 
-  if (context.type !== "story") return null;
+  if (context.type !== "story" || !ActionList) return null;
 
   return (
     <ActionList.Item
@@ -204,9 +239,14 @@ addons.register(ADDON_ID, () => {
     paramKey: PARAM_KEY,
   });
 
-  addons.add(TEST_PROVIDER_ID, {
-    type: types.experimental_TEST_PROVIDER,
-    render: () => <TestProviderWidget />,
-    sidebarContextMenu: ({ context }) => <SidebarContextMenu context={context} />,
-  });
+  // Test provider widget — only register on Storybook 10+ where the API exists
+  if (hasTestProvider && (types as Record<string, unknown>).experimental_TEST_PROVIDER) {
+    addons.add(TEST_PROVIDER_ID, {
+      type: (types as Record<string, unknown>).experimental_TEST_PROVIDER as any,
+      render: () => <TestProviderWidget />,
+      sidebarContextMenu: ({ context }: { context: { id: string; type: string } }) => (
+        <SidebarContextMenu context={context} />
+      ),
+    });
+  }
 });
