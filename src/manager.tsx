@@ -1,13 +1,30 @@
 import React from "react";
-import { addons, types, useChannel, useStorybookApi } from "storybook/internal/manager-api";
+import {
+  addons,
+  types,
+  useChannel,
+  useStorybookApi,
+  experimental_getStatusStore,
+  experimental_getTestProviderStore,
+  experimental_useTestProviderStore,
+} from "storybook/internal/manager-api";
 import { ActionList, Form } from "storybook/internal/components";
 import { styled } from "storybook/internal/theming";
 import { STORY_FINISHED } from "storybook/internal/core-events";
-import { ADDON_ID, PARAM_KEY } from "./constants";
+import { ADDON_ID, PARAM_KEY, STATUS_TYPE_ID } from "./constants";
 import { Panel } from "./Panel";
 
 const PANEL_ID = `${ADDON_ID}/panel`;
 const TEST_PROVIDER_ID = `${ADDON_ID}/test-provider`;
+
+// --- Status Store: per-story sidebar dots ---
+const statusStore = experimental_getStatusStore(STATUS_TYPE_ID);
+const testProviderStore = experimental_getTestProviderStore(TEST_PROVIDER_ID);
+
+// Clear sidebar dots when the global "Clear All" button is pressed
+testProviderStore.onClearAll(() => {
+  statusStore.unset();
+});
 
 const Title = () => {
   const [count, setCount] = React.useState(0);
@@ -67,16 +84,59 @@ const StatusDot = styled.div<{ status: StatusType }>(
     },
 );
 
+interface ViolationReport {
+  violations?: Array<{ ruleId: string; message: string }>;
+}
+
 const TestProviderWidget = () => {
   const [violationCount, setViolationCount] = React.useState<number | null>(null);
   const api = useStorybookApi();
 
+  const providerState = experimental_useTestProviderStore(
+    (state) => state[TEST_PROVIDER_ID]
+  );
+
+  React.useEffect(() => {
+    // Open the AccessLint panel when a sidebar status dot is clicked
+    const unsub = statusStore.onSelect(() => {
+      api.setSelectedPanel(PANEL_ID);
+      api.togglePanel(true);
+    });
+    return unsub;
+  }, [api]);
+
   useChannel({
-    [STORY_FINISHED]: ({ reporters }: { reporters: Array<{ type: string; result: Record<string, unknown> }> }) => {
+    [STORY_FINISHED]: ({ storyId, reporters }: {
+      storyId: string;
+      reporters: Array<{ type: string; status: string; result: Record<string, unknown> }>;
+    }) => {
       const report = reporters.find((r) => r.type === "accesslint");
       if (!report) return;
-      const violations = (report.result as { violations?: unknown[] } | undefined)?.violations;
-      setViolationCount(violations?.length ?? 0);
+
+      const violations = (report.result as ViolationReport)?.violations ?? [];
+      setViolationCount(violations.length);
+
+      // Update the status store for per-story sidebar dots
+      const hasViolations = violations.length > 0;
+      const isWarning = report.status === "warning";
+
+      statusStore.set([{
+        value: hasViolations
+          ? isWarning ? "status-value:warning" : "status-value:error"
+          : "status-value:success",
+        typeId: STATUS_TYPE_ID,
+        storyId,
+        title: "AccessLint",
+        description: hasViolations
+          ? `${violations.length} violation${violations.length === 1 ? "" : "s"}`
+          : "No violations",
+        sidebarContextMenu: true,
+      }]);
+
+      // Mark the test provider as succeeded after processing
+      if (providerState === "test-provider-state:running") {
+        testProviderStore.setState("test-provider-state:succeeded");
+      }
     },
   });
 
@@ -117,6 +177,25 @@ const TestProviderWidget = () => {
   );
 };
 
+// --- Sidebar context menu ---
+const SidebarContextMenu = ({ context }: { context: { id: string; type: string } }) => {
+  const api = useStorybookApi();
+
+  if (context.type !== "story") return null;
+
+  return (
+    <ActionList.Item
+      onClick={() => {
+        api.selectStory(context.id);
+        api.setSelectedPanel(PANEL_ID);
+        api.togglePanel(true);
+      }}
+    >
+      <ActionList.Text>View AccessLint results</ActionList.Text>
+    </ActionList.Item>
+  );
+};
+
 addons.register(ADDON_ID, () => {
   addons.add(PANEL_ID, {
     title: Title,
@@ -128,5 +207,6 @@ addons.register(ADDON_ID, () => {
   addons.add(TEST_PROVIDER_ID, {
     type: types.experimental_TEST_PROVIDER,
     render: () => <TestProviderWidget />,
+    sidebarContextMenu: ({ context }) => <SidebarContextMenu context={context} />,
   });
 });

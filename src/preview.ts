@@ -39,10 +39,12 @@ export const afterEach = async ({
   reporting,
   parameters,
   viewMode,
+  tags,
 }: {
   reporting: { addReport: (report: Record<string, unknown>) => void };
   parameters: Record<string, unknown>;
   viewMode: string;
+  tags: string[];
 }) => {
   const accesslintParam = parameters?.accesslint as
     | { disable?: boolean; test?: string }
@@ -50,6 +52,9 @@ export const afterEach = async ({
 
   if (accesslintParam?.disable === true || accesslintParam?.test === "off") return;
   if (viewMode !== "story") return;
+
+  // Tags-based filtering: skip stories tagged with "no-a11y"
+  if (tags?.includes("no-a11y")) return;
 
   const result = runAudit(document);
   const scoped = scopeViolations(result.violations);

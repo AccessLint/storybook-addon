@@ -11,7 +11,23 @@
  *     plugins: [storybookTest(), accesslintTest()],
  *   });
  */
-export function accesslintTest(): { name: string; config: () => Record<string, unknown> } {
+
+export interface AccessLintTestOptions {
+  /**
+   * Tags-based filtering for which stories to audit.
+   *
+   *   accesslintTest({ tags: { skip: ["no-a11y"] } })
+   *
+   * Stories with any of the `skip` tags will not be audited.
+   */
+  tags?: {
+    skip?: string[];
+  };
+}
+
+export function accesslintTest(
+  options?: AccessLintTestOptions,
+): { name: string; config: () => Record<string, unknown> } {
   // Allow Vite to serve the setup file even when this package is symlinked
   // outside the consuming project's root (common during local development).
   const distDir = new URL(".", import.meta.url).pathname;
@@ -19,7 +35,7 @@ export function accesslintTest(): { name: string; config: () => Record<string, u
   return {
     name: "@accesslint/storybook-addon",
     config() {
-      return {
+      const config: Record<string, unknown> = {
         server: {
           fs: {
             allow: [distDir],
@@ -29,6 +45,15 @@ export function accesslintTest(): { name: string; config: () => Record<string, u
           setupFiles: ["@accesslint/storybook-addon/vitest-setup"],
         },
       };
+
+      // Pass tags configuration via Vite's define so it's available in browser
+      if (options?.tags) {
+        (config as Record<string, Record<string, unknown>>).define = {
+          "__ACCESSLINT_SKIP_TAGS__": JSON.stringify(options.tags.skip ?? []),
+        };
+      }
+
+      return config;
     },
   };
 }
