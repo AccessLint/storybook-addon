@@ -5,7 +5,8 @@
 
 Catch accessibility violations in your Storybook stories as you develop. Powered by [@accesslint/core](https://accesslint.com/core).
 
-<img width="637" height="414" alt="Storybook screenshot with alt text violation in the details of the AccessLint tab" src="https://github.com/user-attachments/assets/01d2de92-0769-4564-8971-f6edc1986010" />
+<img height="414" alt="Storybook screenshot with alt text violation in the details of the AccessLint tab" src="https://github.com/user-attachments/assets/42bb12ee-3a07-4443-8b60-35c2c9c735a9" />
+
 
 ## Getting Started
 
