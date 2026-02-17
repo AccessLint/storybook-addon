@@ -71,6 +71,7 @@ export default defineConfig((options) => {
     target: "esnext" as const,
     platform: "browser" as const,
     external: [...external, "vitest"],
+    dts: true,
     treeshake: true,
     ...options,
   });

@@ -47,7 +47,7 @@ export const afterEach = async ({
   reporting: { addReport: (report: Record<string, unknown>) => void };
   parameters: Record<string, unknown>;
   viewMode: string;
-  tags: string[];
+  tags?: string[];
 }) => {
   const accesslintParam = parameters?.accesslint as
     | { disable?: boolean; test?: string }

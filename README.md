@@ -328,6 +328,7 @@ import { enableAccessLint } from "@accesslint/storybook-addon/portable";
 
 | Addon version | Storybook version |
 | ------------- | ----------------- |
+| 0.7.x         | 10.x              |
 | 0.6.x         | 10.x              |
 
 ## Issues

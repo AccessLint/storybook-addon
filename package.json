@@ -30,6 +30,7 @@
       "require": "./dist/vitest-plugin.cjs"
     },
     "./vitest-setup": {
+      "types": "./dist/vitest-setup.d.ts",
       "import": "./dist/vitest-setup.js",
       "require": "./dist/vitest-setup.cjs"
     },
