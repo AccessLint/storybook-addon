@@ -50,5 +50,30 @@ export default defineConfig((options) => {
     });
   }
 
+  // Vitest plugin (node — it's a Vite plugin)
+  configs.push({
+    entry: ["./src/vitest-plugin.ts"],
+    outDir: "dist",
+    format: ["esm" as const, "cjs" as const],
+    target: "node20" as const,
+    platform: "node" as const,
+    external,
+    dts: true,
+    treeshake: true,
+    ...options,
+  });
+
+  // Vitest setup file (browser — runs in vitest browser context)
+  configs.push({
+    entry: ["./src/vitest-setup.ts"],
+    outDir: "dist",
+    format: ["esm" as const, "cjs" as const],
+    target: "esnext" as const,
+    platform: "browser" as const,
+    external,
+    treeshake: true,
+    ...options,
+  });
+
   return configs;
 });

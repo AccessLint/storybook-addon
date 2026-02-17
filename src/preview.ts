@@ -1,61 +1,70 @@
-import { addons } from "storybook/internal/preview-api";
 import { runAudit, getRuleById, configureRules } from "@accesslint/core";
-import { ADDON_ID } from "./constants";
 
 // Disable rules that don't apply to individual components in Storybook
 configureRules({
   disabledRules: ["accesslint-045"],
 });
 
-const decorator = (storyFn: () => unknown) => {
-  const story = storyFn();
-
-  // Run audit after the story renders, scoped to the story root
-  setTimeout(() => {
+function scopeViolations(violations: ReturnType<typeof runAudit>["violations"]) {
+  const root = document.getElementById("storybook-root");
+  if (!root) return violations;
+  return violations.filter((v) => {
+    const local = v.selector.replace(/^.*>>>\s*iframe>\s*/, "");
     try {
-      const start = performance.now();
-      const results = runAudit(document);
-      const duration = Math.round(performance.now() - start);
-      const root = document.getElementById("storybook-root");
-      const scoped = root
-        ? results.violations.filter((v) => {
-            // Strip iframe-piercing prefix (e.g. "#storybook-preview-iframe >>>iframe> ")
-            const local = v.selector.replace(/^.*>>>\s*iframe>\s*/, "");
-            try {
-              const el = document.querySelector(local);
-              return el && root.contains(el);
-            } catch {
-              return false;
-            }
-          })
-        : results.violations;
-      const enriched = scoped.map((v) => {
-        const rule = getRuleById(v.ruleId);
-        return {
-          ...v,
-          element: undefined, // not serializable
-          description: rule?.description,
-          wcag: rule?.wcag,
-          level: rule?.level,
-          guidance: rule?.guidance,
-        };
-      });
-      const failedRuleIds = new Set(scoped.map((v) => v.ruleId));
-      const channel = addons.getChannel();
-      channel.emit(`${ADDON_ID}/results`, enriched);
-      channel.emit(`${ADDON_ID}/meta`, {
-        duration,
-        ruleCount: results.ruleCount,
-        failed: failedRuleIds.size,
-        passed: results.ruleCount - failedRuleIds.size,
-        violations: scoped.length,
-      });
-    } catch (err) {
-      console.error("[AccessLint] decorator error:", err);
+      const el = document.querySelector(local);
+      return el && root.contains(el);
+    } catch {
+      return false;
     }
-  }, 0);
+  });
+}
 
-  return story;
+function enrichViolations(violations: ReturnType<typeof runAudit>["violations"]) {
+  return violations.map((v) => {
+    const rule = getRuleById(v.ruleId);
+    return {
+      ...v,
+      element: undefined, // not serializable
+      description: rule?.description,
+      wcag: rule?.wcag,
+      level: rule?.level,
+      guidance: rule?.guidance,
+    };
+  });
+}
+
+// Runs AccessLint after each story test. The vitest addon auto-discovers this
+// via previewAnnotations and runs it for every story during test execution.
+export const afterEach = async ({
+  reporting,
+  parameters,
+  viewMode,
+}: {
+  reporting: { addReport: (report: Record<string, unknown>) => void };
+  parameters: Record<string, unknown>;
+  viewMode: string;
+}) => {
+  const accesslintParam = parameters?.accesslint as
+    | { disable?: boolean; test?: string }
+    | undefined;
+
+  if (accesslintParam?.disable === true || accesslintParam?.test === "off") return;
+  if (viewMode !== "story") return;
+
+  const result = runAudit(document);
+  const scoped = scopeViolations(result.violations);
+  const enriched = enrichViolations(scoped);
+
+  const hasViolations = enriched.length > 0;
+  const mode = accesslintParam?.test === "todo" ? "warning" : "failed";
+
+  reporting.addReport({
+    type: "accesslint",
+    version: 1,
+    result: {
+      violations: enriched,
+      ruleCount: result.ruleCount,
+    },
+    status: hasViolations ? mode : "passed",
+  });
 };
-
-export const decorators = [decorator];

@@ -24,6 +24,14 @@
     "./preview": {
       "import": "./dist/preview.js",
       "require": "./dist/preview.cjs"
+    },
+    "./vitest-plugin": {
+      "import": "./dist/vitest-plugin.js",
+      "require": "./dist/vitest-plugin.cjs"
+    },
+    "./vitest-setup": {
+      "import": "./dist/vitest-setup.js",
+      "require": "./dist/vitest-setup.cjs"
     }
   },
   "main": "dist/index.cjs",
