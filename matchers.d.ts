@@ -1,4 +1,4 @@
-import type { AccessibleMatcherOptions } from "./dist/matchers";
+import type { AccessibleMatcherOptions } from "@accesslint/vitest/matchers";
 
 declare module "vitest" {
   interface Assertion<T> {

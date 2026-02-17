@@ -70,20 +70,20 @@ export default defineConfig((options) => {
     format: ["esm" as const, "cjs" as const],
     target: "esnext" as const,
     platform: "browser" as const,
-    external: [...external, "vitest"],
+    external: [...external, "vitest", "@accesslint/vitest"],
     dts: true,
     treeshake: true,
     ...options,
   });
 
-  // Custom Vitest matchers (browser — runs in vitest browser context)
+  // Custom Vitest matchers (re-export from @accesslint/vitest)
   configs.push({
     entry: ["./src/matchers.ts"],
     outDir: "dist",
     format: ["esm" as const, "cjs" as const],
     target: "esnext" as const,
     platform: "browser" as const,
-    external,
+    external: [...external, "@accesslint/vitest"],
     dts: true,
     treeshake: true,
     ...options,
