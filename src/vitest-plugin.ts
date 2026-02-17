@@ -16,7 +16,7 @@ export interface AccessLintTestOptions {
   /**
    * Tags-based filtering for which stories to audit.
    *
-   *   accesslintTest({ tags: { skip: ["no-a11y"] } })
+   *   accesslintTest({ tags: { skip: ["skip-accesslint"] } })
    *
    * Stories with any of the `skip` tags will not be audited.
    */

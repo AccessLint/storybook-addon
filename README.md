@@ -187,18 +187,18 @@ configureRules({
 
 ### Skipping stories with tags
 
-Tag individual stories or entire components with `"no-a11y"` to skip auditing:
+Tag individual stories or entire components with `"skip-accesslint"` to skip auditing:
 
 ```ts
 // Skip a single story
 export const Prototype = {
-  tags: ["no-a11y"],
+  tags: ["skip-accesslint"],
 };
 
 // Skip all stories for a component
 export default {
   component: ExperimentalWidget,
-  tags: ["no-a11y"],
+  tags: ["skip-accesslint"],
 };
 ```
 
@@ -206,7 +206,7 @@ With the Vitest plugin, you can also define custom skip tags:
 
 ```ts
 accesslintTest({
-  tags: { skip: ["no-a11y", "wip"] },
+  tags: { skip: ["skip-accesslint", "wip"] },
 });
 ```
 

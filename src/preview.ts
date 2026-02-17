@@ -1,4 +1,6 @@
 import { createChunkedAudit, getActiveRules, getRuleById, configureRules } from "@accesslint/core";
+import { addons } from "storybook/preview-api";
+import { RESULT_EVENT } from "./constants";
 
 // Defined by the accesslintTest() Vite plugin when tags.skip is configured
 declare const __ACCESSLINT_SKIP_TAGS__: string[];
@@ -49,11 +51,13 @@ export const afterEach = async ({
   parameters,
   viewMode,
   tags,
+  id,
 }: {
   reporting: { addReport: (report: Record<string, unknown>) => void };
   parameters: Record<string, unknown>;
   viewMode: string;
   tags?: string[];
+  id?: string;
 }) => {
   const accesslintParam = parameters?.accesslint as
     | { disable?: boolean; test?: string }
@@ -62,16 +66,18 @@ export const afterEach = async ({
   if (accesslintParam?.disable === true || accesslintParam?.test === "off") return;
   if (viewMode !== "story") return;
 
-  // Tags-based filtering: skip stories tagged with "no-a11y" or custom skip tags
+  // Tags-based filtering: skip stories tagged with "skip-accesslint" or custom skip tags
   const skipTags: string[] =
     typeof __ACCESSLINT_SKIP_TAGS__ !== "undefined" ? __ACCESSLINT_SKIP_TAGS__ : [];
-  const allSkipTags = ["no-a11y", ...skipTags];
+  const allSkipTags = ["skip-accesslint", ...skipTags];
   const matchedTag = tags?.find((t) => allSkipTags.includes(t));
   if (matchedTag) {
+    const result = { skipped: true as const, reason: matchedTag };
+    addons.getChannel().emit(RESULT_EVENT, { storyId: id, result });
     reporting.addReport({
       type: "accesslint",
       version: 1,
-      result: { skipped: true, reason: matchedTag },
+      result,
       status: "passed",
     });
     return;
@@ -88,14 +94,17 @@ export const afterEach = async ({
 
   const hasViolations = enriched.length > 0;
   const mode = accesslintParam?.test === "todo" ? "warning" : "failed";
+  const status = hasViolations ? mode : "passed";
+  const result = {
+    violations: enriched,
+    ruleCount: getActiveRules().length,
+  };
 
+  addons.getChannel().emit(RESULT_EVENT, { storyId: id, result, status });
   reporting.addReport({
     type: "accesslint",
     version: 1,
-    result: {
-      violations: enriched,
-      ruleCount: getActiveRules().length,
-    },
-    status: hasViolations ? mode : "passed",
+    result,
+    status,
   });
 };

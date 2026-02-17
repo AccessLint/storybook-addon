@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useCallback, type FC } from "react";
 import { useChannel } from "storybook/internal/manager-api";
 import { useTheme } from "storybook/internal/theming";
-import { STORY_FINISHED, STORY_CHANGED } from "storybook/internal/core-events";
+import { STORY_CHANGED } from "storybook/internal/core-events";
+import { RESULT_EVENT } from "./constants";
 
 interface EnrichedViolation {
   ruleId: string;
@@ -72,10 +73,7 @@ export const Panel: FC<PanelProps> = ({ active }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useChannel({
-    [STORY_FINISHED]: ({ reporters }: { reporters: Array<{ type: string; result: Record<string, unknown> }> }) => {
-      const report = reporters.find((r) => r.type === "accesslint");
-      if (!report) return;
-      const result = report.result as { violations?: EnrichedViolation[]; ruleCount?: number; skipped?: boolean; reason?: string };
+    [RESULT_EVENT]: ({ result }: { storyId?: string; result: { violations?: EnrichedViolation[]; ruleCount?: number; skipped?: boolean; reason?: string }; status?: string }) => {
       if (result.skipped) {
         setViolations([]);
         setRuleCount(0);

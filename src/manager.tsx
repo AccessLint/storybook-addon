@@ -1,8 +1,7 @@
 import React from "react";
 import * as managerApi from "storybook/internal/manager-api";
 import { styled } from "storybook/internal/theming";
-import { STORY_FINISHED } from "storybook/internal/core-events";
-import { ADDON_ID, PARAM_KEY, STATUS_TYPE_ID } from "./constants";
+import { ADDON_ID, PARAM_KEY, STATUS_TYPE_ID, RESULT_EVENT } from "./constants";
 import { Panel } from "./Panel";
 
 const { addons, types, useChannel, useStorybookApi } = managerApi;
@@ -45,10 +44,8 @@ const Title = () => {
   const [count, setCount] = React.useState(0);
 
   useChannel({
-    [STORY_FINISHED]: ({ reporters }: { reporters: Array<{ type: string; result: Record<string, unknown> }> }) => {
-      const report = reporters.find((r) => r.type === "accesslint");
-      const violations = (report?.result as { violations?: unknown[] } | undefined)?.violations;
-      setCount(violations?.length ?? 0);
+    [RESULT_EVENT]: ({ result }: { result: { violations?: unknown[]; skipped?: boolean } }) => {
+      setCount(result.skipped ? 0 : result.violations?.length ?? 0);
     },
   });
 
@@ -122,31 +119,33 @@ const TestProviderWidget = () => {
   }, [api]);
 
   useChannel({
-    [STORY_FINISHED]: ({ storyId, reporters }: {
-      storyId: string;
-      reporters: Array<{ type: string; status: string; result: Record<string, unknown> }>;
+    [RESULT_EVENT]: ({ storyId, result, status }: {
+      storyId?: string;
+      result: ViolationReport & { skipped?: boolean };
+      status?: string;
     }) => {
-      const report = reporters.find((r) => r.type === "accesslint");
-      if (!report) return;
-
-      const violations = (report.result as ViolationReport)?.violations ?? [];
+      const violations = result.skipped ? [] : result.violations ?? [];
       setViolationCount(violations.length);
 
       // Update the status store for per-story sidebar dots (SB 10+ only)
-      if (statusStore) {
+      if (statusStore && storyId) {
         const hasViolations = violations.length > 0;
-        const isWarning = report.status === "warning";
+        const isWarning = status === "warning";
 
         statusStore.set([{
-          value: hasViolations
-            ? isWarning ? "status-value:warning" : "status-value:error"
-            : "status-value:success",
+          value: result.skipped
+            ? "status-value:unknown"
+            : hasViolations
+              ? isWarning ? "status-value:warning" : "status-value:error"
+              : "status-value:success",
           typeId: STATUS_TYPE_ID,
           storyId,
           title: "AccessLint",
-          description: hasViolations
-            ? `${violations.length} violation${violations.length === 1 ? "" : "s"}`
-            : "No violations",
+          description: result.skipped
+            ? "Skipped"
+            : hasViolations
+              ? `${violations.length} violation${violations.length === 1 ? "" : "s"}`
+              : "No violations",
           sidebarContextMenu: true,
         }]);
       }
