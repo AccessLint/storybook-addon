@@ -1,4 +1,4 @@
-import { runAudit, getRuleById, configureRules } from "@accesslint/core";
+import { createChunkedAudit, getActiveRules, getRuleById, configureRules } from "@accesslint/core";
 
 // Defined by the accesslintTest() Vite plugin when tags.skip is configured
 declare const __ACCESSLINT_SKIP_TAGS__: string[];
@@ -8,7 +8,13 @@ configureRules({
   disabledRules: ["accesslint-045"],
 });
 
-function scopeViolations(violations: ReturnType<typeof runAudit>["violations"]) {
+const BUDGET_MS = 12;
+
+function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function scopeViolations<T extends { selector: string }>(violations: T[]): T[] {
   const root = document.getElementById("storybook-root");
   if (!root) return violations;
   return violations.filter((v) => {
@@ -22,7 +28,7 @@ function scopeViolations(violations: ReturnType<typeof runAudit>["violations"]) 
   });
 }
 
-function enrichViolations(violations: ReturnType<typeof runAudit>["violations"]) {
+function enrichViolations(violations: { ruleId: string; selector: string; html: string; impact: string; message: string; context?: string; element?: Element }[]) {
   return violations.map((v) => {
     const rule = getRuleById(v.ruleId);
     return {
@@ -62,8 +68,13 @@ export const afterEach = async ({
     typeof __ACCESSLINT_SKIP_TAGS__ !== "undefined" ? __ACCESSLINT_SKIP_TAGS__ : [];
   if (skipTags.length > 0 && tags?.some((t) => skipTags.includes(t))) return;
 
-  const result = runAudit(document);
-  const scoped = scopeViolations(result.violations);
+  const audit = createChunkedAudit(document);
+  while (audit.processChunk(BUDGET_MS)) {
+    await yieldToMain();
+  }
+
+  const violations = audit.getViolations();
+  const scoped = scopeViolations(violations);
   const enriched = enrichViolations(scoped);
 
   const hasViolations = enriched.length > 0;
@@ -74,7 +85,7 @@ export const afterEach = async ({
     version: 1,
     result: {
       violations: enriched,
-      ruleCount: result.ruleCount,
+      ruleCount: getActiveRules().length,
     },
     status: hasViolations ? mode : "passed",
   });
