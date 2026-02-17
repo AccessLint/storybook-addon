@@ -17,169 +17,62 @@ Add the addon to your `.storybook/main.ts` (or `.storybook/main.js`):
 
 ```ts
 const config = {
-  addons: ["@storybook/addon-vitest", "@accesslint/storybook-addon"],
+  addons: ["@accesslint/storybook-addon"],
 };
 
 export default config;
 ```
 
-Add the vitest plugin to your `vite.config.ts`:
+Restart Storybook and an **AccessLint** panel will appear in the addon bar. Every story is audited automatically after it renders.
+
+## Vitest integration
+
+If you use [`@storybook/addon-vitest`](https://storybook.js.org/docs/writing-tests/vitest-plugin), add the AccessLint plugin next to `storybookTest()` in your Vite config:
 
 ```ts
-import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { accesslintTest } from "@accesslint/storybook-addon/vitest-plugin";
 
-export default defineConfig({
-  test: {
-    projects: [
-      {
-        plugins: [
-          storybookTest({ configDir: ".storybook" }),
-          accesslintTest(),
-        ],
-        test: {
-          name: "storybook",
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright({}),
-            instances: [{ browser: "chromium" }],
-          },
-          setupFiles: [".storybook/vitest.setup.ts"],
-        },
-      },
-    ],
-  },
-});
+// Inside your Storybook test project:
+plugins: [
+  storybookTest({ configDir: ".storybook" }),
+  accesslintTest(),
+],
 ```
 
-Restart Storybook and an **AccessLint** panel will appear in the addon bar.
+This gives you:
 
-## Usage
+- Per-story status dots in the sidebar (green/yellow/red)
+- A test widget in the sidebar's testing module
+- The `toBeAccessible()` matcher registered automatically
+- Accessibility results in CI alongside your component tests
 
-The addon audits each story after it renders and displays violations sorted by severity. Expand any violation to see:
+## Accessibility assertions
 
-- **Impact level** — critical, serious, moderate, or minor
-- **WCAG criteria** and conformance level (A, AA, AAA)
-- **How to fix** guidance for each rule
-- **Element HTML** snippet of the failing element
+Use `toBeAccessible()` to make accessibility a first-class assertion in your tests and play functions.
 
-### Sidebar status indicators
+### With the Vitest plugin
 
-Each story gets a colored dot in the sidebar tree showing its accessibility status:
-
-- Green — no violations
-- Yellow — violations present, but running in `"todo"` mode (warnings)
-- Red — violations present in `"error"` mode (failures)
-
-Click a status dot to jump to the AccessLint panel for that story. Right-click any story in the sidebar to access "View AccessLint results".
-
-### Test widget
-
-The AccessLint test provider widget appears in the sidebar's testing module alongside Storybook's built-in component tests. It shows the current story's violation count and responds to the global "Run all" and "Clear all" buttons.
-
-## Configuration
-
-### Parameters
-
-Control AccessLint behavior per-story or globally via `parameters.accesslint`:
+If you added `accesslintTest()` above, the matcher is already registered. Use it directly in play functions:
 
 ```ts
-// .storybook/preview.ts
-const preview = {
-  parameters: {
-    accesslint: {
-      // 'todo' - show violations as warnings in the test UI (non-blocking)
-      // 'error' - fail CI on violations
-      // 'off' - skip checks entirely
-      test: "todo",
-    },
-  },
-};
+import { expect } from "storybook/test";
 
-export default preview;
-```
-
-Override per-story:
-
-```ts
-export const Experimental = {
-  parameters: {
-    accesslint: { test: "off" },
+export const Default = {
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement).toBeAccessible();
   },
 };
 ```
 
-### Disabling rules
+### Without the Vitest plugin
 
-Disable specific rules in your preview file:
-
-```ts
-// .storybook/preview.ts
-import { configureRules } from "@accesslint/core";
-
-configureRules({
-  disabledRules: ["accesslint-045"], // e.g. disable landmark region rule
-});
-```
-
-### Skipping stories with tags
-
-Tag stories with `"no-a11y"` to skip AccessLint auditing:
-
-```ts
-export const Prototype = {
-  tags: ["no-a11y"],
-};
-```
-
-The tag can also be set at the component level to skip all stories for a component:
-
-```ts
-export default {
-  title: "Prototypes/ExperimentalWidget",
-  component: ExperimentalWidget,
-  tags: ["no-a11y"],
-};
-```
-
-You can also configure the `accesslintTest()` plugin with custom skip tags:
-
-```ts
-accesslintTest({
-  tags: { skip: ["no-a11y", "wip"] },
-});
-```
-
-## Accessibility assertions in play functions
-
-The `toBeAccessible()` matcher lets you make accessibility a first-class assertion in interaction tests and play functions.
-
-### Setup
-
-Import the matchers entry point in your test setup or directly in a story file:
+For play functions or standalone tests without the plugin, import the matchers entry point to register `toBeAccessible()`:
 
 ```ts
 import "@accesslint/storybook-addon/matchers";
 ```
 
-For TypeScript support, add the type reference to your `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "types": ["@accesslint/storybook-addon/matchers"]
-  }
-}
-```
-
-Or add a triple-slash reference in a `.d.ts` file:
-
-```ts
-/// <reference types="@accesslint/storybook-addon/matchers" />
-```
-
-### Usage in a play function
+Then use it in a play function:
 
 ```ts
 import { expect } from "storybook/test";
@@ -192,7 +85,7 @@ export const Default = {
 };
 ```
 
-### Usage in a standalone Vitest test
+Or in a standalone Vitest/Jest test:
 
 ```ts
 import "@accesslint/storybook-addon/matchers";
@@ -204,9 +97,7 @@ test("LoginForm is accessible", () => {
 });
 ```
 
-### Options
-
-Pass options to disable specific rules for a single assertion:
+### Disabling rules per assertion
 
 ```ts
 await expect(canvasElement).toBeAccessible({
@@ -228,11 +119,100 @@ Expected element to have no accessibility violations, but found 2:
     input[type="email"]
 ```
 
+### TypeScript support
+
+Add the type reference to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@accesslint/storybook-addon/matchers"]
+  }
+}
+```
+
+Or add a triple-slash reference in a `.d.ts` file:
+
+```ts
+/// <reference types="@accesslint/storybook-addon/matchers" />
+```
+
+## Configuration
+
+### Test mode
+
+Control how violations are reported via `parameters.accesslint`:
+
+```ts
+// .storybook/preview.ts — applies to all stories
+const preview = {
+  parameters: {
+    accesslint: {
+      test: "todo", // "error" (default) | "todo" | "off"
+    },
+  },
+};
+
+export default preview;
+```
+
+| Mode | Behavior |
+| --- | --- |
+| `"error"` | Violations fail the test (default) |
+| `"todo"` | Violations show as warnings — yellow sidebar dots, non-blocking in CI |
+| `"off"` | Skip auditing entirely |
+
+Override per-story:
+
+```ts
+export const Experimental = {
+  parameters: {
+    accesslint: { test: "off" },
+  },
+};
+```
+
+### Disabling rules
+
+Disable specific rules globally in your preview file:
+
+```ts
+// .storybook/preview.ts
+import { configureRules } from "@accesslint/core";
+
+configureRules({
+  disabledRules: ["accesslint-045"], // e.g. disable landmark region rule
+});
+```
+
+### Skipping stories with tags
+
+Tag individual stories or entire components with `"no-a11y"` to skip auditing:
+
+```ts
+// Skip a single story
+export const Prototype = {
+  tags: ["no-a11y"],
+};
+
+// Skip all stories for a component
+export default {
+  component: ExperimentalWidget,
+  tags: ["no-a11y"],
+};
+```
+
+With the Vitest plugin, you can also define custom skip tags:
+
+```ts
+accesslintTest({
+  tags: { skip: ["no-a11y", "wip"] },
+});
+```
+
 ## Portable stories
 
-Use AccessLint with `composeStories` outside of Storybook (plain Vitest, Jest, or Playwright CT).
-
-### Setup
+Use AccessLint with [`composeStories`](https://storybook.js.org/docs/api/portable-stories/portable-stories-vitest) outside of Storybook (plain Vitest, Jest, or Playwright CT).
 
 In your test setup file, pass the AccessLint annotations to `setProjectAnnotations`:
 
@@ -250,7 +230,7 @@ const project = setProjectAnnotations([
 beforeAll(project.beforeAll);
 ```
 
-### Usage
+Then in your tests:
 
 ```ts
 import { composeStories } from "@storybook/react";
@@ -273,22 +253,13 @@ test("Primary button is accessible", async () => {
 | `@accesslint/storybook-addon` | Main addon registration (manager + preview) |
 | `@accesslint/storybook-addon/vitest-plugin` | `accesslintTest()` Vite plugin for Vitest integration |
 | `@accesslint/storybook-addon/vitest-setup` | Setup file registered by the Vite plugin |
-| `@accesslint/storybook-addon/matchers` | `toBeAccessible()` custom Vitest/Jest matcher |
+| `@accesslint/storybook-addon/matchers` | `toBeAccessible()` custom matcher |
 | `@accesslint/storybook-addon/portable` | `enableAccessLint()` for portable stories |
 | `@accesslint/storybook-addon/preview` | Preview annotations (afterEach hook) |
 
 ### `accesslintTest(options?)`
 
-Vite plugin that registers AccessLint's `afterEach` annotation for Vitest story tests.
-
-```ts
-import { accesslintTest } from "@accesslint/storybook-addon/vitest-plugin";
-
-accesslintTest();
-accesslintTest({ tags: { skip: ["no-a11y"] } });
-```
-
-**Options:**
+Vite plugin that registers AccessLint's `afterEach` annotation and the `toBeAccessible()` matcher for Vitest story tests.
 
 | Option | Type | Description |
 | --- | --- | --- |
@@ -298,19 +269,12 @@ accesslintTest({ tags: { skip: ["no-a11y"] } });
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `test` | `"todo" \| "error" \| "off"` | `"error"` | `"todo"` reports violations as warnings. `"error"` fails the test. `"off"` skips auditing. |
+| `test` | `"todo" \| "error" \| "off"` | `"error"` | Controls how violations are reported |
 | `disable` | `boolean` | `false` | Set to `true` to skip auditing (same as `test: "off"`) |
 
 ### `toBeAccessible(options?)`
 
 Custom matcher for asserting an element has no accessibility violations.
-
-```ts
-expect(element).toBeAccessible();
-expect(element).toBeAccessible({ disabledRules: ["accesslint-045"] });
-```
-
-**Options:**
 
 | Option | Type | Description |
 | --- | --- | --- |
@@ -319,10 +283,6 @@ expect(element).toBeAccessible({ disabledRules: ["accesslint-045"] });
 ### `enableAccessLint()`
 
 Returns AccessLint's preview annotations for use with `setProjectAnnotations` in portable stories setups.
-
-```ts
-import { enableAccessLint } from "@accesslint/storybook-addon/portable";
-```
 
 ## Compatibility
 
