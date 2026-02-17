@@ -67,6 +67,7 @@ export const Panel: FC<PanelProps> = ({ active }) => {
 
   const [violations, setViolations] = useState<EnrichedViolation[]>([]);
   const [ruleCount, setRuleCount] = useState(0);
+  const [skippedReason, setSkippedReason] = useState<string | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -74,14 +75,23 @@ export const Panel: FC<PanelProps> = ({ active }) => {
     [STORY_FINISHED]: ({ reporters }: { reporters: Array<{ type: string; result: Record<string, unknown> }> }) => {
       const report = reporters.find((r) => r.type === "accesslint");
       if (!report) return;
-      const result = report.result as { violations?: EnrichedViolation[]; ruleCount?: number };
+      const result = report.result as { violations?: EnrichedViolation[]; ruleCount?: number; skipped?: boolean; reason?: string };
+      if (result.skipped) {
+        setViolations([]);
+        setRuleCount(0);
+        setSkippedReason(result.reason ?? "skipped");
+        setExpandedIndex(null);
+        return;
+      }
       setViolations(result.violations ?? []);
       setRuleCount(result.ruleCount ?? 0);
+      setSkippedReason(null);
       setExpandedIndex(null);
     },
     [STORY_CHANGED]: () => {
       setViolations([]);
       setRuleCount(0);
+      setSkippedReason(null);
       setExpandedIndex(null);
     },
   });
@@ -138,7 +148,9 @@ export const Panel: FC<PanelProps> = ({ active }) => {
       )}
       {violations.length === 0 ? (
         <p style={{ padding: "12px", margin: 0, fontSize: "13px", color: colors.textMuted }}>
-          No accessibility violations found.
+          {skippedReason
+            ? `Accessibility audit skipped (${skippedReason} tag).`
+            : "No accessibility violations found."}
         </p>
       ) : (
         <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>

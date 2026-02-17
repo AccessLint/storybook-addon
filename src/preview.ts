@@ -63,10 +63,19 @@ export const afterEach = async ({
   if (viewMode !== "story") return;
 
   // Tags-based filtering: skip stories tagged with "no-a11y" or custom skip tags
-  if (tags?.includes("no-a11y")) return;
   const skipTags: string[] =
     typeof __ACCESSLINT_SKIP_TAGS__ !== "undefined" ? __ACCESSLINT_SKIP_TAGS__ : [];
-  if (skipTags.length > 0 && tags?.some((t) => skipTags.includes(t))) return;
+  const allSkipTags = ["no-a11y", ...skipTags];
+  const matchedTag = tags?.find((t) => allSkipTags.includes(t));
+  if (matchedTag) {
+    reporting.addReport({
+      type: "accesslint",
+      version: 1,
+      result: { skipped: true, reason: matchedTag },
+      status: "passed",
+    });
+    return;
+  }
 
   const audit = createChunkedAudit(document);
   while (audit.processChunk(BUDGET_MS)) {
