@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, type FC } from "react";
-import { useChannel } from "storybook/internal/manager-api";
-import { useTheme } from "storybook/internal/theming";
+import { useChannel } from "storybook/manager-api";
+import { useTheme } from "storybook/theming";
 import { STORY_CHANGED } from "storybook/internal/core-events";
 import { RESULT_EVENT, HIGHLIGHT, REMOVE_HIGHLIGHT } from "./constants";
 
@@ -45,7 +45,7 @@ const LEVEL_COLOR: Record<string, string> = {
 };
 
 interface PanelProps {
-  active: boolean;
+  active?: boolean;
 }
 
 export const Panel: FC<PanelProps> = ({ active }) => {

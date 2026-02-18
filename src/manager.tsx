@@ -1,6 +1,6 @@
 import React from "react";
-import * as managerApi from "storybook/internal/manager-api";
-import { styled } from "storybook/internal/theming";
+import * as managerApi from "storybook/manager-api";
+import { styled } from "storybook/theming";
 import { ADDON_ID, PARAM_KEY, STATUS_TYPE_ID, RESULT_EVENT } from "./constants";
 import { Panel } from "./Panel";
 
@@ -29,6 +29,7 @@ if (testProviderStore && statusStore) {
 }
 
 // ActionList and Form only exist in Storybook 10+
+declare const require: (id: string) => any;
 let ActionList: any = null;
 let Form: any = null;
 try {

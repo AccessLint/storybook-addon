@@ -2,6 +2,14 @@ import { createChunkedAudit, getActiveRules, getRuleById, configureRules } from 
 import { addons } from "storybook/preview-api";
 import { RESULT_EVENT } from "./constants";
 
+export const initialGlobals = {
+  accesslint: {},
+};
+
+export const parameters = {
+  accesslint: {},
+};
+
 // Defined by the accesslintTest() Vite plugin when tags.skip is configured
 declare const __ACCESSLINT_SKIP_TAGS__: string[];
 
@@ -53,7 +61,7 @@ export const afterEach = async ({
   tags,
   id,
 }: {
-  reporting: { addReport: (report: Record<string, unknown>) => void };
+  reporting: { addReport: (report: { type: string; version?: number; result: unknown; status: "failed" | "passed" | "warning" }) => void };
   parameters: Record<string, unknown>;
   viewMode: string;
   tags?: string[];
