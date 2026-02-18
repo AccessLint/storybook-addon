@@ -1,6 +1,6 @@
 {
   "name": "@accesslint/storybook-addon",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Catch accessibility violations in your Storybook stories as you develop",
   "license": "MIT",
   "publishConfig": {
@@ -58,10 +58,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accesslint/core": "^0.6.5",
+    "@accesslint/core": "^0.6.6",
     "@accesslint/vitest": "^0.1.4"
   },
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^10.2.0",
@@ -93,14 +95,12 @@
     "icon": "https://accesslint.com/icon.png"
   },
   "bundler": {
-    "nodeEntries": [
-      "./src/index.ts"
-    ],
     "managerEntries": [
       "./src/manager.tsx"
     ],
     "previewEntries": [
-      "./src/preview.ts"
+      "./src/preview.ts",
+      "./src/index.ts"
     ]
   }
 }
