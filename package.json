@@ -6,7 +6,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://accesslint.com/storybook",
+  "homepage": "https://www.accesslint.com/storybook?ref=npm_storybook",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AccessLint/storybook-addon.git"
