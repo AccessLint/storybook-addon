@@ -58,8 +58,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accesslint/core": "^0.6.6",
-    "@accesslint/vitest": "^0.1.4"
+    "@accesslint/core": "^0.8.2",
+    "@accesslint/vitest": "^0.1.7"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
