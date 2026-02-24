@@ -58,7 +58,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accesslint/core": "^0.8.2",
+    "@accesslint/core": "^0.8.7",
     "@accesslint/vitest": "^0.1.7"
   },
   "devDependencies": {
