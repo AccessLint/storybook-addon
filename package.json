@@ -1,6 +1,6 @@
 {
   "name": "@accesslint/storybook-addon",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "Catch accessibility violations in your Storybook stories as you develop",
   "license": "MIT",
   "publishConfig": {
@@ -58,7 +58,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accesslint/core": "^0.8.7",
+    "@accesslint/core": "^0.8.8",
     "@accesslint/vitest": "^0.1.7"
   },
   "devDependencies": {
